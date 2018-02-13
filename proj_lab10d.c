@@ -385,7 +385,7 @@ void main(void)
     while(!(gSystemVars.Flag_enableSystem));
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
-//    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], true);
+    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], true);
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
 //    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR2], true);
@@ -1012,6 +1012,28 @@ void recalcKpKi(CTRL_Handle handle, const uint_least8_t mtrNum)
 
   return;
 } // end of recalcKpKi() function
+void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
+{
+  _iq iq_ref = _IQmpy(gMotorVars[mtrNum].IqRef_A,_IQ(1.0/gUserParams[mtrNum].iqFullScaleCurrent_A));
+
+  // set the speed reference so that the forced angle rotates in the correct direction for startup
+  if(_IQabs(gMotorVars[mtrNum].Speed_krpm) < _IQ(0.01))
+    {
+      if(iq_ref < _IQ(0.0))
+        {
+          CTRL_setSpd_ref_krpm(handle,_IQ(-0.01));
+        }
+      else if(iq_ref > _IQ(0.0))
+        {
+          CTRL_setSpd_ref_krpm(handle,_IQ(0.01));
+        }
+    }
+
+  // Set the Iq reference that use to come out of the PI speed control
+  CTRL_setIq_ref_pu(handle, iq_ref);
+
+  return;
+} // end of updateIqRef() function
 
 //@} //defgroup
 // end of file
