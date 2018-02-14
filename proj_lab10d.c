@@ -574,6 +574,7 @@ void main(void)
         	{
         	    //VERY TEMP: Updates IqRef
         	    updateIqRef(ctrlHandle[0],0);
+        	    updateIqRef(ctrlHandle[1],1);
 
         		// reset the counter
         		gCounter_updateGlobals[motorNum] = 0;
