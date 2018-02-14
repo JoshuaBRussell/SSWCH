@@ -134,6 +134,10 @@ extern "C" {
 //!
 #define HAL_toggleLed             HAL_toggleGpio
 
+//! \brief Defines the GPIO pin number for control card LD3
+//!
+#define HAL_GPIO_LED3 GPIO_Number_34
+
 
 // **************************************************************************
 // the typedefs

@@ -366,6 +366,9 @@ void main(void)
   // enable debug interrupts
   HAL_enableDebugInt(halHandle);
 
+  // enable the Timer 0 interrupts
+  HAL_enableTimer0Int(halHandle);
+
 
   // disable the PWM
   HAL_disablePwm(halHandleMtr[HAL_MTR1]);
@@ -395,12 +398,12 @@ void main(void)
 //    while(gMotorVars[HAL_MTR1].Flag_enableSys)
     while(gSystemVars.Flag_enableSystem)
     {
-		// toggle status LED
-		if(gLEDcnt[HAL_MTR1]++ > (uint_least32_t)(USER_ISR_FREQ_Hz_M1 / LED_BLINK_FREQ_Hz))
-		{
-			HAL_toggleLed(halHandle,(GPIO_Number_e)HAL_Gpio_LED2);
-			gLEDcnt[HAL_MTR1] = 0;
-		}
+//		// toggle status LED
+//		if(gLEDcnt[HAL_MTR1]++ > (uint_least32_t)(USER_ISR_FREQ_Hz_M1 / LED_BLINK_FREQ_Hz))
+//		{
+//			HAL_toggleLed(halHandle,(GPIO_Number_e)HAL_Gpio_LED2);
+//			gLEDcnt[HAL_MTR1] = 0;
+//		}
 
 		// toggle status LED
 		if(gLEDcnt[HAL_MTR2]++ > (uint_least32_t)(USER_ISR_FREQ_Hz_M2 / LED_BLINK_FREQ_Hz))
@@ -884,6 +887,16 @@ interrupt void motor2_ISR(void)
   return;
 } // end of mainISR() function
 #endif
+
+interrupt void timer0ISR(void)
+{
+ // acknowledge the Timer 0 interrupt
+ HAL_acqTimer0Int(halHandle);
+ // toggle status LED
+ HAL_toggleLed(halHandle,HAL_GPIO_LED3);
+ return;
+} // end of timer0ISR() function
+
 
 void updateGlobalVariables_motor(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
