@@ -176,6 +176,7 @@ extern interrupt void motor1_ISR(void);
 extern interrupt void motor2_ISR(void);
 #endif
 
+extern interrupt void timer0ISR(void);
 // **************************************************************************
 // the function prototypes
 
@@ -539,6 +540,7 @@ HAL_Handle_mtr HAL_init_mtr(void *pMemory,const size_t numBytes,const HAL_MtrSel
 //! \brief      Initializes the interrupt vector table
 //! \details    Points ADCINT1 to motor1_ISR
 //! \details    Points ADCINT2 to motor2_ISR
+//! \details    Points the TINT0 to timer0ISR
 //! \param[in]  handle  The hardware abstraction layer (HAL) handle
 static inline void HAL_initIntVectorTable(HAL_Handle handle)
  {
@@ -554,6 +556,8 @@ static inline void HAL_initIntVectorTable(HAL_Handle handle)
   pie->ADCINT1 = &motor1_ISR;
   pie->ADCINT2 = &motor2_ISR;
   #endif
+
+  pie->TINT0 = &timer0ISR;
 
   DISABLE_PROTECTED_REGISTER_WRITE_MODE;
 
