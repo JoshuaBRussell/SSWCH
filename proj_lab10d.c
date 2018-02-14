@@ -259,8 +259,8 @@ void main(void)
   gMotorVars[1].Flag_enableUserParams = true;
 //  gMotorVars[1].Flag_enableUserParams = false;
 
-  gMotorVars[0].Flag_enableSpeedCtrl = true;
-  gMotorVars[1].Flag_enableSpeedCtrl = true;
+  gMotorVars[0].Flag_enableSpeedCtrl = false;
+  gMotorVars[1].Flag_enableSpeedCtrl = false;
 
   for(motorNum=HAL_MTR1;motorNum<=HAL_MTR2;motorNum++)
   {
@@ -385,10 +385,10 @@ void main(void)
     while(!(gSystemVars.Flag_enableSystem));
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
-    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], true);
+    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], false);
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
-//    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR2], true);
+    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR2], false);
 
     // loop while the enable system flag is true
     // Motor 1 Flag_enableSys is the master control.
@@ -572,6 +572,9 @@ void main(void)
         	// when appropriate, update the global variables
         	if(gCounter_updateGlobals[motorNum] >= NUM_MAIN_TICKS_FOR_GLOBAL_VARIABLE_UPDATE)
         	{
+        	    //VERY TEMP: Updates IqRef
+        	    updateIqRef(ctrlHandle[0],0);
+
         		// reset the counter
         		gCounter_updateGlobals[motorNum] = 0;
 
