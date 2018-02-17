@@ -262,6 +262,9 @@ void main(void)
   gMotorVars[0].Flag_enableSpeedCtrl = false;
   gMotorVars[1].Flag_enableSpeedCtrl = false;
 
+  gMotorVars[0].Flag_enableForceAngle = false;
+  gMotorVars[1].Flag_enableForceAngle = false;
+
   for(motorNum=HAL_MTR1;motorNum<=HAL_MTR2;motorNum++)
   {
 	  // set the default controller parameters
@@ -1031,6 +1034,7 @@ void recalcKpKi(CTRL_Handle handle, const uint_least8_t mtrNum)
 
   return;
 } // end of recalcKpKi() function
+
 void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
   _iq iq_ref = _IQmpy(gMotorVars[mtrNum].IqRef_A,_IQ(1.0/gUserParams[mtrNum].iqFullScaleCurrent_A));
