@@ -575,10 +575,6 @@ void main(void)
         	// when appropriate, update the global variables
         	if(gCounter_updateGlobals[motorNum] >= NUM_MAIN_TICKS_FOR_GLOBAL_VARIABLE_UPDATE)
         	{
-        	    //VERY TEMP: Updates IqRef
-        	    updateIqRef(ctrlHandle[0],0);
-        	    updateIqRef(ctrlHandle[1],1);
-
         		// reset the counter
         		gCounter_updateGlobals[motorNum] = 0;
 
@@ -894,6 +890,12 @@ interrupt void timer0ISR(void)
  HAL_acqTimer0Int(halHandle);
  // toggle status LED
  HAL_toggleGpio(halHandle, GPIO_Number_22);
+
+ //Updates IqRef for M1 and M2
+ updateIqRef(ctrlHandle[0],0);
+ updateIqRef(ctrlHandle[1],1);
+
+
  return;
 } // end of timer0ISR() function
 
