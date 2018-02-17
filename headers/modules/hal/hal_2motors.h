@@ -1382,6 +1382,11 @@ extern void HAL_setupFlash(HAL_Handle handle);
 extern void HAL_setupGpios(HAL_Handle handle);
 
 
+//! \brief     Sets up the I2CA peripheral
+//! \param[in] handle  The hardware abstraction layer (HAL) handle
+extern void HAL_setupI2CA(HAL_Handle handle);
+
+
 //! \brief     Sets up the peripheral clocks
 //! \param[in] handle  The hardware abstraction layer (HAL) handle
 extern void HAL_setupPeripheralClks(HAL_Handle handle);
