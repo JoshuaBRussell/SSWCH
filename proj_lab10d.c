@@ -262,6 +262,9 @@ void main(void)
   gMotorVars[0].Flag_enableSpeedCtrl = false;
   gMotorVars[1].Flag_enableSpeedCtrl = false;
 
+  gMotorVars[0].Flag_enableForceAngle = false;
+  gMotorVars[1].Flag_enableForceAngle = false;
+
   for(motorNum=HAL_MTR1;motorNum<=HAL_MTR2;motorNum++)
   {
 	  // set the default controller parameters
@@ -365,6 +368,9 @@ void main(void)
 
   // enable debug interrupts
   HAL_enableDebugInt(halHandle);
+
+  // enable the Timer 0 interrupts
+  HAL_enableTimer0Int(halHandle);
 
 
   // disable the PWM
@@ -572,10 +578,6 @@ void main(void)
         	// when appropriate, update the global variables
         	if(gCounter_updateGlobals[motorNum] >= NUM_MAIN_TICKS_FOR_GLOBAL_VARIABLE_UPDATE)
         	{
-        	    //VERY TEMP: Updates IqRef
-        	    updateIqRef(ctrlHandle[0],0);
-        	    updateIqRef(ctrlHandle[1],1);
-
         		// reset the counter
         		gCounter_updateGlobals[motorNum] = 0;
 
@@ -885,6 +887,23 @@ interrupt void motor2_ISR(void)
 } // end of mainISR() function
 #endif
 
+interrupt void timer0ISR(void)
+{
+ // acknowledge the Timer 0 interrupt
+ HAL_acqTimer0Int(halHandle);
+ // toggle status LED
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
+
+ //Updates IqRef for M1 and M2
+ updateIqRef(ctrlHandle[0],0);
+ updateIqRef(ctrlHandle[1],1);
+
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
+
+ return;
+} // end of timer0ISR() function
+
+
 void updateGlobalVariables_motor(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
   CTRL_Obj *obj = (CTRL_Obj *)handle;
@@ -1016,6 +1035,7 @@ void recalcKpKi(CTRL_Handle handle, const uint_least8_t mtrNum)
 
   return;
 } // end of recalcKpKi() function
+
 void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
   _iq iq_ref = _IQmpy(gMotorVars[mtrNum].IqRef_A,_IQ(1.0/gUserParams[mtrNum].iqFullScaleCurrent_A));
