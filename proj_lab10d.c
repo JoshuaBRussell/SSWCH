@@ -898,6 +898,7 @@ interrupt void timer0ISR(void)
  updateIqRef(ctrlHandle[0],0);
  updateIqRef(ctrlHandle[1],1);
 
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
 
  return;
 } // end of timer0ISR() function
