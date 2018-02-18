@@ -81,11 +81,12 @@ _iq b2 = _IQ(-0.1246);
 _iq a1 = _IQ(-1.7421);
 _iq a2 = _IQ(0.7508);
 
-_iq z_meas = _IQ(0.0);
-_iq x_meas = _IQ(0.0);
+//----Variables----//
+_iq z_meas = _IQ(0.0); //Unfiltered Z measurement
+_iq x_meas = _IQ(0.0); //Unfiltered X measurement
 
-_iq Zaccel = 0;
-_iq Xaccel = 0;
+_iq Zaccel = 0; //Filtered Z acceleration
+_iq Xaccel = 0; //Filtered X acceleration
 
 //Bandpass State Variables
 _iq z_meas1 = 0;
@@ -932,7 +933,7 @@ interrupt void timer0ISR(void)
  // toggle status LED
  HAL_toggleGpio(halHandle, GPIO_Number_22);
 
- //Test Accel Z
+ //----Accel Z----//
  uint16_t temp_z_h = 0;
  int16_t iAccel = 0;
  temp_z_h = accel_Read(halHandle, OUT_Z_H_XL );
@@ -942,14 +943,14 @@ interrupt void timer0ISR(void)
  //BandPass Filter
  Zaccel = _IQmpy(b0, z_meas) + _IQmpy(b2, z_meas2) - _IQmpy(a1, z_output1) - _IQmpy(a2, z_output2);
 
- //Update Filter State Variables
+ //----Update Filter State Variables----//
  z_meas2 = z_meas1;
  z_meas1 = z_meas;
 
  z_output2 = z_output1;
  z_output1 = Zaccel;
 
- //Test Accel X
+ //----Accel X----//
  uint16_t temp_x_h = 0;
  int16_t jAccel = 0;
  temp_x_h = accel_Read(halHandle, OUT_X_H_XL );
@@ -959,7 +960,7 @@ interrupt void timer0ISR(void)
  //BandPass Filter
  Xaccel = _IQmpy(b0, x_meas) + _IQmpy(b2, x_meas2) - _IQmpy(a1, x_output1) - _IQmpy(a2, x_output2);
 
- //Update Filter State Variables
+ //----Update Filter State Variables----//
  x_meas2 = x_meas1;
  x_meas1 = x_meas;
 
