@@ -71,8 +71,32 @@
 //#define _ENABLE_OVM_
 // **************************************************************************
 // the globals
+
+//----Constants----//
+//Band Pass Coeff
+_iq b0 = _IQ(0.1246);
+_iq b1 = _IQ(0);
+_iq b2 = _IQ(-0.1246);
+
+_iq a1 = _IQ(-1.7421);
+_iq a2 = _IQ(0.7508);
+
 _iq z_meas = _IQ(0.0);
 _iq x_meas = _IQ(0.0);
+
+_iq Zaccel = 0;
+_iq Xaccel = 0;
+
+//Bandpass State Variables
+_iq z_meas1 = 0;
+_iq z_meas2 = 0;
+_iq z_output1 = 0;
+_iq z_output2 = 0;
+
+_iq x_meas1 = 0;
+_iq x_meas2 = 0;
+_iq x_output1 = 0;
+_iq x_output2 = 0;
 
 CTRL_Handle ctrlHandle[2];
 
@@ -915,12 +939,32 @@ interrupt void timer0ISR(void)
  iAccel = (temp_z_h << 8) | accel_Read(halHandle, OUT_Z_L_XL );
  z_meas = _IQ14toIQ(_IQ14(0.000061 * iAccel));
 
+ //BandPass Filter
+ Zaccel = _IQmpy(b0, z_meas) + _IQmpy(b2, z_meas2) - _IQmpy(a1, z_output1) - _IQmpy(a2, z_output2);
+
+ //Update Filter State Variables
+ z_meas2 = z_meas1;
+ z_meas1 = z_meas;
+
+ z_output2 = z_output1;
+ z_output1 = Zaccel;
+
  //Test Accel X
  uint16_t temp_x_h = 0;
  int16_t jAccel = 0;
  temp_x_h = accel_Read(halHandle, OUT_X_H_XL );
  jAccel = (temp_x_h << 8) | accel_Read(halHandle, OUT_X_L_XL );
  x_meas = _IQ14toIQ(_IQ14(0.000061 * jAccel));
+
+ //BandPass Filter
+ Xaccel = _IQmpy(b0, x_meas) + _IQmpy(b2, x_meas2) - _IQmpy(a1, x_output1) - _IQmpy(a2, x_output2);
+
+ //Update Filter State Variables
+ x_meas2 = x_meas1;
+ x_meas1 = x_meas;
+
+ x_output2 = x_output1;
+ x_output1 = Xaccel;
 
  //Updates IqRef for M1 and M2
  updateIqRef(ctrlHandle[0],0);
