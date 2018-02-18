@@ -68,6 +68,14 @@
 #define EST_Number1 		0
 #define CTRL_Number1		0
 
+#define P_Gainz 0.5
+#define I_Gainz 0.0
+#define D_Gainz 0.0
+
+#define P_Gainx 0.5
+#define I_Gainx 0.0
+#define D_Gainx 0.0
+
 //#define _ENABLE_OVM_
 // **************************************************************************
 // the globals
@@ -87,6 +95,9 @@ _iq x_meas = _IQ(0.0); //Unfiltered X measurement
 
 _iq Zaccel = 0; //Filtered Z acceleration
 _iq Xaccel = 0; //Filtered X acceleration
+
+_iq current_z = 0; //Current Comm to Z Mtr
+_iq current_x = 0; //Current Comm to X Mtr
 
 //Bandpass State Variables
 _iq z_meas1 = 0;
@@ -215,6 +226,9 @@ CPU_TIME_Obj     cpu_time[2];
 void initAccel(HAL_Handle);
 uint16_t accel_Read(HAL_Handle, uint16_t);
 void accel_Write(HAL_Handle, uint16_t, uint16_t);
+
+PID_Handle pidHandle_zaccel;
+PID_Handle pidHandle_xaccel;
 
 void main(void)
 {
@@ -415,6 +429,29 @@ void main(void)
   // disable the PWM
   HAL_disablePwm(halHandleMtr[HAL_MTR1]);
   HAL_disablePwm(halHandleMtr[HAL_MTR2]);
+
+
+  //----Init Accel PIDs----//
+  PID_Obj pid_zaccel;
+
+  pidHandle_zaccel = PID_init(&pid_zaccel,sizeof(pid_zaccel));
+
+  // set PID gains Kp, Ki, Kd
+  PID_setGains(pidHandle_zaccel, _IQ(P_Gainz), _IQ(I_Gainz), _IQ(D_Gainz));
+
+  // set minimum and maximim PID values
+  PID_setMinMax(pidHandle_zaccel, _IQ(-10), _IQ(10.0));
+
+  PID_Obj pid_xaccel;
+
+  pidHandle_xaccel = PID_init(&pid_xaccel,sizeof(pid_xaccel));
+
+  // set PID gains Kp, Ki, Kd
+  PID_setGains(pidHandle_xaccel, _IQ(P_Gainx), _IQ(I_Gainx), _IQ(D_Gainx));
+
+  // set minimum and maximim PID values
+  PID_setMinMax(pidHandle_xaccel, _IQ(-10), _IQ(10.0));
+
 
   gSystemVars.Flag_enableSystem = true;
 
@@ -950,6 +987,11 @@ interrupt void timer0ISR(void)
  z_output2 = z_output1;
  z_output1 = Zaccel;
 
+ //Run PID and update current command
+ PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+ gMotorVars[0].IqRef_A = current_z;
+ updateIqRef(ctrlHandle[0],0);
+
  //----Accel X----//
  uint16_t temp_x_h = 0;
  int16_t jAccel = 0;
@@ -967,8 +1009,9 @@ interrupt void timer0ISR(void)
  x_output2 = x_output1;
  x_output1 = Xaccel;
 
- //Updates IqRef for M1 and M2
- updateIqRef(ctrlHandle[0],0);
+ //Run PID and update current command
+ PID_run(pidHandle_xaccel, _IQ(0.0), Xaccel, &current_x);
+ gMotorVars[1].IqRef_A = current_x;
  updateIqRef(ctrlHandle[1],1);
 
  HAL_toggleGpio(halHandle, GPIO_Number_22);
