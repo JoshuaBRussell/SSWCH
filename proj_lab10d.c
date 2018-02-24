@@ -1148,7 +1148,7 @@ void recalcKpKi(CTRL_Handle handle, const uint_least8_t mtrNum)
   return;
 } // end of recalcKpKi() function
 
-void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
+inline void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
   _iq iq_ref = _IQmpy(gMotorVars[mtrNum].IqRef_A,_IQ(1.0/gUserParams[mtrNum].iqFullScaleCurrent_A));
 
