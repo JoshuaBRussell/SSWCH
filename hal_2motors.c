@@ -674,6 +674,10 @@ HAL_Handle HAL_init(void *pMemory,const size_t numBytes)
   obj->gpioHandle = GPIO_init((void *)GPIO_BASE_ADDR,sizeof(GPIO_Obj));
 
 
+  // initialize the GPIO handle
+  obj->i2cAHandle = I2C_init((void *)I2CA_BASE_ADDR,sizeof(I2C_Obj));
+
+
   // initialize the oscillator handle
   obj->oscHandle = OSC_init((void *)OSC_BASE_ADDR,sizeof(OSC_Obj));
 
@@ -857,6 +861,9 @@ void HAL_setParams(HAL_Handle handle,const USER_Params *pUserParams)
   // setup the timers
   HAL_setupTimers(handle,
                   (float_t)pUserParams->systemFreq_MHz);
+
+  // setup the I2C
+   HAL_setupI2CA(handle);
 
 
  return;
@@ -1406,6 +1413,8 @@ void HAL_setupGpios(HAL_Handle handle)
 
   // GPIO
   GPIO_setMode(obj->gpioHandle,GPIO_Number_22,GPIO_22_Mode_GeneralPurpose);
+  GPIO_setLow(obj->gpioHandle,GPIO_Number_22);
+  GPIO_setDirection(obj->gpioHandle,GPIO_Number_22,GPIO_Direction_Output);
 
   // GPIO
   GPIO_setMode(obj->gpioHandle,GPIO_Number_23,GPIO_23_Mode_GeneralPurpose);
@@ -1436,10 +1445,14 @@ void HAL_setupGpios(HAL_Handle handle)
   GPIO_setMode(obj->gpioHandle,GPIO_Number_31,GPIO_31_Mode_CANTXA);
 
   // I2C Data
-  GPIO_setMode(obj->gpioHandle,GPIO_Number_32,GPIO_32_Mode_SDAA);
+   GPIO_setPullup(obj->gpioHandle,GPIO_Number_32,GPIO_Pullup_Enable);
+   GPIO_setQualification(obj->gpioHandle, GPIO_Number_32, GPIO_Qual_ASync);
+   GPIO_setMode(obj->gpioHandle,GPIO_Number_32,GPIO_32_Mode_SDAA);
 
-  // I2C Clock
-  GPIO_setMode(obj->gpioHandle,GPIO_Number_33,GPIO_33_Mode_SCLA);
+   // I2C Clock
+   GPIO_setPullup(obj->gpioHandle,GPIO_Number_33,GPIO_Pullup_Enable);
+   GPIO_setQualification(obj->gpioHandle, GPIO_Number_33, GPIO_Qual_ASync);
+   GPIO_setMode(obj->gpioHandle,GPIO_Number_33,GPIO_33_Mode_SCLA);
 
   // LED D9
   GPIO_setMode(obj->gpioHandle,GPIO_Number_34,GPIO_34_Mode_GeneralPurpose);
@@ -1529,6 +1542,23 @@ void HAL_setupGpios(HAL_Handle handle)
 
   return;
 }  // end of HAL_setupGpios() function
+
+void HAL_setupI2CA(HAL_Handle handle){
+
+    HAL_Obj  *obj = (HAL_Obj *)handle;
+
+    // I2CCLK = SYSCLK/(I2CPSC+1)
+    // Prescaler - need 7-12 Mhz on module clk bitTimeLow = 10, bitTimeHigh = 5
+    I2C_setupClock(obj->i2cAHandle, 8, 45, 45);// 76, 38);//I2C_PRESCALER, I2C_BITTIMELOW, I2C_BITTIMEHIGH);
+
+    I2C_setMasterSlaveAddr(obj->i2cAHandle, 0x6B);//I2C_SLAVE_ADDR);
+
+    I2C_setMaster(obj->i2cAHandle); // enables I2C module
+    I2C_enable(obj->i2cAHandle);    // take I2C out of reset
+
+    return;
+}  // end of HAL_setupI2CA() function
+
 
 
 void HAL_setupPie(HAL_Handle handle)
@@ -2159,13 +2189,14 @@ void HAL_setupPwmDacs(HAL_Handle handle)
 void HAL_setupTimers(HAL_Handle handle,const float_t systemFreq_MHz)
 {
   HAL_Obj  *obj = (HAL_Obj *)handle;
-  uint32_t  timerPeriod_0p5ms = (uint32_t)(systemFreq_MHz * (float_t)500.0) - 1;
+  uint32_t  timerPeriod_5ms = (uint32_t)(systemFreq_MHz * (float_t)5000.0) - 1;
   uint32_t  timerPeriod_10ms = (uint32_t)(systemFreq_MHz * (float_t)10000.0) - 1;
+  uint32_t  timerPeriod_1s = (uint32_t)(systemFreq_MHz * (float_t)1000000.0) - 1;
 
   // use timer 0 for frequency diagnostics
   TIMER_setDecimationFactor(obj->timerHandle[0],0);
   TIMER_setEmulationMode(obj->timerHandle[0],TIMER_EmulationMode_RunFree);
-  TIMER_setPeriod(obj->timerHandle[0],timerPeriod_0p5ms);
+  TIMER_setPeriod(obj->timerHandle[0],timerPeriod_5ms);
   TIMER_setPreScaler(obj->timerHandle[0],0);
 
   // use timer 1 for CPU usage diagnostics

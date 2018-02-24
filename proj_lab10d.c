@@ -45,6 +45,9 @@
 // **************************************************************************
 // the includes
 
+#include "headers/drivers/i2c.h"
+#include "headers/LSM9DS1_Registers.h"
+
 // system includes
 #include <math.h>
 #include "headers/main_2motors.h"
@@ -65,9 +68,48 @@
 #define EST_Number1 		0
 #define CTRL_Number1		0
 
+#define P_Gainz 0.5
+#define I_Gainz 0.0
+#define D_Gainz 0.0
+
+#define P_Gainx 0.5
+#define I_Gainx 0.0
+#define D_Gainx 0.0
+
 //#define _ENABLE_OVM_
 // **************************************************************************
 // the globals
+
+//----Constants----//
+//Band Pass Coeff
+_iq b0 = _IQ(0.1246);
+_iq b1 = _IQ(0);
+_iq b2 = _IQ(-0.1246);
+
+_iq a1 = _IQ(-1.7421);
+_iq a2 = _IQ(0.7508);
+
+//----Variables----//
+_iq z_meas = _IQ(0.0); //Unfiltered Z measurement
+_iq x_meas = _IQ(0.0); //Unfiltered X measurement
+
+_iq Zaccel = 0; //Filtered Z acceleration
+_iq Xaccel = 0; //Filtered X acceleration
+
+_iq current_z = 0; //Current Comm to Z Mtr
+_iq current_x = 0; //Current Comm to X Mtr
+
+//Bandpass State Variables
+_iq z_meas1 = 0;
+_iq z_meas2 = 0;
+_iq z_output1 = 0;
+_iq z_output2 = 0;
+
+_iq x_meas1 = 0;
+_iq x_meas2 = 0;
+_iq x_output1 = 0;
+_iq x_output2 = 0;
+
 CTRL_Handle ctrlHandle[2];
 
 uint_least16_t gCounter_updateGlobals[2] = {0, 0};
@@ -180,6 +222,14 @@ CPU_TIME_Obj     cpu_time[2];
 // **************************************************************************
 // the functions
 
+//Accel Prototypes
+void initAccel(HAL_Handle);
+uint16_t accel_Read(HAL_Handle, uint16_t);
+void accel_Write(HAL_Handle, uint16_t, uint16_t);
+
+PID_Handle pidHandle_zaccel;
+PID_Handle pidHandle_xaccel;
+
 void main(void)
 {
   // Only used if running from FLASH
@@ -259,8 +309,11 @@ void main(void)
   gMotorVars[1].Flag_enableUserParams = true;
 //  gMotorVars[1].Flag_enableUserParams = false;
 
-  gMotorVars[0].Flag_enableSpeedCtrl = true;
-  gMotorVars[1].Flag_enableSpeedCtrl = true;
+  gMotorVars[0].Flag_enableSpeedCtrl = false;
+  gMotorVars[1].Flag_enableSpeedCtrl = false;
+
+  gMotorVars[0].Flag_enableForceAngle = false;
+  gMotorVars[1].Flag_enableForceAngle = false;
 
   for(motorNum=HAL_MTR1;motorNum<=HAL_MTR2;motorNum++)
   {
@@ -348,6 +401,9 @@ void main(void)
     gMotorVars[HAL_MTR2].CtrlVersion = version;
   }
 
+  //Init Accel
+  initAccel(halHandle);
+
   // set DAC parameters
   HAL_setDacParameters(halHandle, &gDacData);
 
@@ -366,10 +422,36 @@ void main(void)
   // enable debug interrupts
   HAL_enableDebugInt(halHandle);
 
+  // enable the Timer 0 interrupts
+  HAL_enableTimer0Int(halHandle);
+
 
   // disable the PWM
   HAL_disablePwm(halHandleMtr[HAL_MTR1]);
   HAL_disablePwm(halHandleMtr[HAL_MTR2]);
+
+
+  //----Init Accel PIDs----//
+  PID_Obj pid_zaccel;
+
+  pidHandle_zaccel = PID_init(&pid_zaccel,sizeof(pid_zaccel));
+
+  // set PID gains Kp, Ki, Kd
+  PID_setGains(pidHandle_zaccel, _IQ(P_Gainz), _IQ(I_Gainz), _IQ(D_Gainz));
+
+  // set minimum and maximim PID values
+  PID_setMinMax(pidHandle_zaccel, _IQ(-10), _IQ(10.0));
+
+  PID_Obj pid_xaccel;
+
+  pidHandle_xaccel = PID_init(&pid_xaccel,sizeof(pid_xaccel));
+
+  // set PID gains Kp, Ki, Kd
+  PID_setGains(pidHandle_xaccel, _IQ(P_Gainx), _IQ(I_Gainx), _IQ(D_Gainx));
+
+  // set minimum and maximim PID values
+  PID_setMinMax(pidHandle_xaccel, _IQ(-10), _IQ(10.0));
+
 
   gSystemVars.Flag_enableSystem = true;
 
@@ -385,10 +467,10 @@ void main(void)
     while(!(gSystemVars.Flag_enableSystem));
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
-//    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], true);
+    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR1], false);
 
     // Enable the Library internal PI.  Iq is referenced by the speed PI now
-//    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR2], true);
+    CTRL_setFlag_enableSpeedCtrl(ctrlHandle[HAL_MTR2], false);
 
     // loop while the enable system flag is true
     // Motor 1 Flag_enableSys is the master control.
@@ -881,6 +963,63 @@ interrupt void motor2_ISR(void)
 } // end of mainISR() function
 #endif
 
+interrupt void timer0ISR(void)
+{
+ // acknowledge the Timer 0 interrupt
+ HAL_acqTimer0Int(halHandle);
+ // toggle status LED
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
+
+ //----Accel Z----//
+ uint16_t temp_z_h = 0;
+ int16_t iAccel = 0;
+ temp_z_h = accel_Read(halHandle, OUT_Z_H_XL );
+ iAccel = (temp_z_h << 8) | accel_Read(halHandle, OUT_Z_L_XL );
+ z_meas = _IQ14toIQ(_IQ14(0.000061 * iAccel));
+
+ //BandPass Filter
+ Zaccel = _IQmpy(b0, z_meas) + _IQmpy(b2, z_meas2) - _IQmpy(a1, z_output1) - _IQmpy(a2, z_output2);
+
+ //----Update Filter State Variables----//
+ z_meas2 = z_meas1;
+ z_meas1 = z_meas;
+
+ z_output2 = z_output1;
+ z_output1 = Zaccel;
+
+ //Run PID and update current command
+ PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+ gMotorVars[0].IqRef_A = current_z;
+ updateIqRef(ctrlHandle[0],0);
+
+ //----Accel X----//
+ uint16_t temp_x_h = 0;
+ int16_t jAccel = 0;
+ temp_x_h = accel_Read(halHandle, OUT_X_H_XL );
+ jAccel = (temp_x_h << 8) | accel_Read(halHandle, OUT_X_L_XL );
+ x_meas = _IQ14toIQ(_IQ14(0.000061 * jAccel));
+
+ //BandPass Filter
+ Xaccel = _IQmpy(b0, x_meas) + _IQmpy(b2, x_meas2) - _IQmpy(a1, x_output1) - _IQmpy(a2, x_output2);
+
+ //----Update Filter State Variables----//
+ x_meas2 = x_meas1;
+ x_meas1 = x_meas;
+
+ x_output2 = x_output1;
+ x_output1 = Xaccel;
+
+ //Run PID and update current command
+ PID_run(pidHandle_xaccel, _IQ(0.0), Xaccel, &current_x);
+ gMotorVars[1].IqRef_A = current_x;
+ updateIqRef(ctrlHandle[1],1);
+
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
+
+ return;
+} // end of timer0ISR() function
+
+
 void updateGlobalVariables_motor(CTRL_Handle handle, const uint_least8_t mtrNum)
 {
   CTRL_Obj *obj = (CTRL_Obj *)handle;
@@ -1012,6 +1151,158 @@ void recalcKpKi(CTRL_Handle handle, const uint_least8_t mtrNum)
 
   return;
 } // end of recalcKpKi() function
+
+void updateIqRef(CTRL_Handle handle, const uint_least8_t mtrNum)
+{
+  _iq iq_ref = _IQmpy(gMotorVars[mtrNum].IqRef_A,_IQ(1.0/gUserParams[mtrNum].iqFullScaleCurrent_A));
+
+  // set the speed reference so that the forced angle rotates in the correct direction for startup
+  if(_IQabs(gMotorVars[mtrNum].Speed_krpm) < _IQ(0.01))
+    {
+      if(iq_ref < _IQ(0.0))
+        {
+          CTRL_setSpd_ref_krpm(handle,_IQ(-0.01));
+        }
+      else if(iq_ref > _IQ(0.0))
+        {
+          CTRL_setSpd_ref_krpm(handle,_IQ(0.01));
+        }
+    }
+
+  // Set the Iq reference that use to come out of the PI speed control
+  CTRL_setIq_ref_pu(handle, iq_ref);
+
+  return;
+} // end of updateIqRef() function
+
+//---- Team Caffe Functions ----//
+//These should be moved to more appropriate headers/HAL/etc.,
+//but for now, they are part of the high level project, so they can be
+//created here in main.
+void accel_Write(HAL_Handle halHandle, uint16_t register_add, uint16_t data ){
+    //I2C_disable(halHandle->i2cHandle);
+    //I2C_enable(halHandle->i2cHandle);
+//
+    while(I2C_isMasterBusy(halHandle->i2cAHandle));
+    I2C_clearStopConditionDetection(halHandle->i2cAHandle);
+    while(I2C_isMasterStopBitSet(halHandle->i2cAHandle));
+
+
+//    while(!((I2C_getStatus(halHandle->i2cHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+//    // If a NACK occurred, SCL is held low and STP bit cleared
+//    if ( I2C_isNoAck(halHandle->i2cHandle) )
+//    {
+//        I2C_setMasterStopBit(halHandle->i2cHandle);  // send STP to end transfer
+//        I2C_clearNoAckBit(halHandle->i2cHandle);     // clear NACK bit
+//    }
+    //I2C_disable(halHandle->i2cHandle);
+    I2C_MasterControl(halHandle->i2cAHandle, I2C_Control_Single_TX, 0, 2);
+
+
+    while(!((I2C_getStatus(halHandle->i2cAHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(halHandle->i2cAHandle) )
+    {
+        I2C_setMasterStopBit(halHandle->i2cAHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(halHandle->i2cAHandle);     // clear NACK bit
+        return;
+    }
+    I2C_putData(halHandle->i2cAHandle, register_add);
+
+    while(!((I2C_getStatus(halHandle->i2cAHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(halHandle->i2cAHandle) )
+    {
+        I2C_setMasterStopBit(halHandle->i2cAHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(halHandle->i2cAHandle);     // clear NACK bit
+        return;
+    }
+    I2C_putData(halHandle->i2cAHandle, data);
+
+    while(!((I2C_getStatus(halHandle->i2cAHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(halHandle->i2cAHandle) )
+    {
+        I2C_setMasterStopBit(halHandle->i2cAHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(halHandle->i2cAHandle);     // clear NACK bit
+        return;
+    }
+
+    I2C_setMasterStopBit(halHandle->i2cAHandle);
+
+    while(!I2C_isStopConditionDetected(halHandle->i2cAHandle));
+} // end of accel_Write() function
+
+uint16_t accel_Read(HAL_Handle halHandle, uint16_t register_add ){
+
+    //I2C_disable(halHandle->i2cHandle);
+    //I2C_enable(halHandle->i2cHandle);
+//
+    while(I2C_isMasterBusy(halHandle->i2cAHandle));
+    I2C_clearStopConditionDetection(halHandle->i2cAHandle);
+    while(I2C_isMasterStopBitSet(halHandle->i2cAHandle));
+
+    I2C_MasterControl(halHandle->i2cAHandle, I2C_Control_Burst_TX_Start, 0, 1);
+
+
+    while(!((I2C_getStatus(halHandle->i2cAHandle) & (I2C_I2CSTR_XRDY_BITS))));
+
+    I2C_putData(halHandle->i2cAHandle, register_add);
+
+    while(!((I2C_getStatus(halHandle->i2cAHandle) & (I2C_I2CSTR_ARDY_BITS))));
+    I2C_MasterControl(halHandle->i2cAHandle, I2C_Control_Single_RX, 0, 1);
+
+    if(I2C_isNoAck(halHandle->i2cAHandle)){
+        I2C_clearNoAckBit(halHandle->i2cAHandle);
+    }
+
+    I2C_setMasterStopBit(halHandle->i2cAHandle);
+
+    while(!I2C_isStopConditionDetected(halHandle->i2cAHandle));
+
+    return I2C_getData(halHandle->i2cAHandle);
+
+}
+
+void initAccel(HAL_Handle halHandle){
+
+    //  CTRL_REG5_XL (0x1F) (Default value: 0x38)
+    //  [DEC_1][DEC_0][Zen_XL][Yen_XL][Zen_XL][0][0][0]
+    //  DEC[0:1] - Decimation of accel data on OUT REG and FIFO.
+    //      00: None, 01: 2 samples, 10: 4 samples 11: 8 samples
+    //  Zen_XL - Z-axis output enabled
+    //  Yen_XL - Y-axis output enabled
+    //  Xen_XL - X-axis output enabled
+
+    uint16_t tempValue = 0x00;
+    tempValue |= (1<<5);  //Enable Z
+    //tempValue |= (1<<4);  //Enable Y
+    tempValue |= (1<<3);  //Enable X
+    accel_Write(halHandle, CTRL_REG5_XL, tempValue );
+//
+//    // CTRL_REG6_XL (0x20) (Default value: 0x00)
+//    // [ODR_XL2][ODR_XL1][ODR_XL0][FS1_XL][FS0_XL][BW_SCAL_ODR][BW_XL1][BW_XL0]
+//    // ODR_XL[2:0] - Output data rate & power mode selection
+//    // FS_XL[1:0] - Full-scale selection
+//    // BW_SCAL_ODR - Bandwidth selection
+//    // BW_XL[1:0] - Anti-aliasing filter bandwidth selection
+    tempValue = 0x00;
+    tempValue |= (0x80);//(6 & 0x07) << 5;  // 6 is the value for 952 Hz - highest sample rate
+    // Scale defaults to 2g (0x0 << 3)
+    accel_Write(halHandle, CTRL_REG6_XL, tempValue );
+
+//    // CTRL_REG7_XL (0x21) (Default value: 0x00)
+//    // [HR][DCF1][DCF0][0][0][FDS][0][HPIS1]
+//    // HR - High resolution mode (0: disable, 1: enable)
+//    // DCF[1:0] - Digital filter cutoff frequency
+//    // FDS - Filtered data selection
+//    // HPIS1 - HPF enabled for interrupt function
+
+}
+//
+uint16_t getAccelX(HAL_Handle halHandle){
+    return accel_Read(halHandle, OUT_X_L_XL );
+}
 
 //@} //defgroup
 // end of file

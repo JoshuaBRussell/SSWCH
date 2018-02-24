@@ -216,6 +216,23 @@ extern "C" {
 // **************************************************************************
 // this section defined in user_j1.h or user_j5.h
 
+#define MY_MOTOR_M1 113
+//#define USER_MOTOR_M1 MY_MOTOR_M1
+
+//#elif (USER_MOTOR_M1 == MY_MOTOR_M1)
+//#define USER_MOTOR_TYPE MOTOR_Type_Pm_M1
+//#define USER_MOTOR_NUM_POLE_PAIRS_M1 (11)
+//#define USER_MOTOR_Rr_M1 (NULL)
+//#define USER_MOTOR_Rs_M1 (4.76391315)
+//#define USER_MOTOR_Ls_d_M1 (0.00798180327)
+//#define USER_MOTOR_Ls_q_M1 (0.00798180327)
+//#define USER_MOTOR_RATED_FLUX_M1 (0.214254737)
+//#define USER_MOTOR_MAGNETIZING_CURRENT_M1 (NULL)
+//#define USER_MOTOR_RES_EST_CURRENT_M1 (0.6)
+//#define USER_MOTOR_IND_EST_CURRENT_M1 (-0.6)
+//#define USER_MOTOR_MAX_CURRENT_M1 (13.0)
+//#define USER_MOTOR_FLUX_EST_FREQ_Hz_M1 (20.0)
+
 #ifndef USER_MOTOR_M1
 #error Motor is not defined in user.h
 #endif

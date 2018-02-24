@@ -60,7 +60,7 @@ extern "C" {
 //! \brief Defines the full scale frequency for IQ variable, Hz
 //! \brief All frequencies are converted into (pu) based on the ratio to this value
 //! \brief this value MUST be larger than the maximum speed that you are expecting from the motor
-#define USER_IQ_FULL_SCALE_FREQ_Hz_M1      		(800.0)   // 800 Example with buffer for 8-pole 6 KRPM motor to be run to 10 KRPM with field weakening; Hz =(RPM * Poles) / 120
+#define USER_IQ_FULL_SCALE_FREQ_Hz_M1      		(500.0)   // 800 Example with buffer for 8-pole 6 KRPM motor to be run to 10 KRPM with field weakening; Hz =(RPM * Poles) / 120
 
 //! \brief Defines full scale value for the IQ30 variable of Voltage inside the system
 //! \brief All voltages are converted into (pu) based on the ratio to this value
@@ -70,17 +70,17 @@ extern "C" {
 //! \brief WARNING: if you know the value of your Bemf constant, and you know you are operating at a multiple speed due to field weakening, be sure to set this value higher than the expected Bemf voltage
 //! \brief It is recommended to start with a value ~3x greater than the USER_ADC_FULL_SCALE_VOLTAGE_V and increase to 4-5x if scenarios where a Bemf calculation may exceed these limits
 //! \brief This value is also used to calculate the minimum flux value: USER_IQ_FULL_SCALE_VOLTAGE_V/USER_EST_FREQ_Hz/0.7
-#define USER_IQ_FULL_SCALE_VOLTAGE_V_M1      	(24.0)   // 24.0 Example for boostxldrv8305_revA typical usage and the Anaheim motor
+#define USER_IQ_FULL_SCALE_VOLTAGE_V_M1      	(120.0)   // 24.0 Example for boostxldrv8305_revA typical usage and the Anaheim motor
 
 //! \brief Defines the maximum voltage at the input to the AD converter
 //! \brief The value that will be represented by the maximum ADC input (3.3V) and conversion (0FFFh)
 //! \brief Hardware dependent, this should be based on the voltage sensing and scaling to the ADC input
-#define USER_ADC_FULL_SCALE_VOLTAGE_V_M1       (44.30)      // 26.314 boostxldrv8305_revA voltage scaling
+#define USER_ADC_FULL_SCALE_VOLTAGE_V_M1       (24.0)      // 26.314 boostxldrv8305_revA voltage scaling
 
 //! \brief Defines the full scale current for the IQ variables, A
 //! \brief All currents are converted into (pu) based on the ratio to this value
 //! \brief WARNING: this value MUST be larger than the maximum current readings that you are expecting from the motor or the reading will roll over to 0, creating a control issue
-#define USER_IQ_FULL_SCALE_CURRENT_A_M1         (20.0) // 20.0 Example for boostxldrv8305_revA typical usage
+#define USER_IQ_FULL_SCALE_CURRENT_A_M1         (25.0) // 20.0 Example for boostxldrv8305_revA typical usage
 
 //! \brief Defines the maximum current at the AD converter
 //! \brief The value that will be represented by the maximum ADC input (3.3V) and conversion (0FFFh)
@@ -99,16 +99,23 @@ extern "C" {
 //! \brief ADC current offsets for A, B, and C phases
 //! \brief One-time hardware dependent, though the calibration can be done at run-time as well
 //! \brief After initial board calibration these values should be updated for your specific hardware so they are available after compile in the binary to be loaded to the controller
-#define   I_A_offset_M1    (0.8325241804)
-#define   I_B_offset_M1    (0.8290548921)
-#define   I_C_offset_M1    (0.8284353018)
+//#define   I_A_offset_M1    (0.8325241804)
+//#define   I_B_offset_M1    (0.8290548921)
+//#define   I_C_offset_M1    (0.8284353018)
+#define   I_A_offset_M1    (0.9686457515)
+#define   I_B_offset_M1    (0.9659551978)
+#define   I_C_offset_M1    (0.9663579464)
+
 
 //! \brief ADC voltage offsets for A, B, and C phases
 //! \brief One-time hardware dependent, though the calibration can be done at run-time as well
 //! \brief After initial board calibration these values should be updated for your specific hardware so they are available after compile in the binary to be loaded to the controller
-#define   V_A_offset_M1    (0.4963588715)
-#define   V_B_offset_M1    (0.4934324026)
-#define   V_C_offset_M1    (0.4930265546)
+//#define   V_A_offset_M1    (0.4963588715)
+//#define   V_B_offset_M1    (0.4934324026)
+//#define   V_C_offset_M1    (0.4930265546)
+#define   V_A_offset_M1    (0.0449282527)
+#define   V_B_offset_M1    (0.0451965332)
+#define   V_C_offset_M1    (0.04474937916)
 
 
 //! \brief CLOCKS & TIMERS
@@ -136,7 +143,7 @@ extern "C" {
 // **************************************************************************
 //! \brief Defines the number of pwm clock ticks per isr clock tick
 //!        Note: Valid values are 1, 2 or 3 only
-#define USER_NUM_PWM_TICKS_PER_ISR_TICK_M1        (2)
+#define USER_NUM_PWM_TICKS_PER_ISR_TICK_M1        (3)
 
 //! \brief Defines the number of isr ticks (hardware) per controller clock tick (software)
 //! \brief Controller clock tick (CTRL) is the main clock used for all timing in the software
@@ -176,7 +183,7 @@ extern "C" {
 //! \brief Defines the R/L estimation frequency, Hz
 //! \brief User higher values for low inductance motors and lower values for higher inductance
 //! \brief motors.  The values can range from 100 to 300 Hz.
-#define USER_R_OVER_L_EST_FREQ_Hz_M1			 (300)               // 300 Default
+#define USER_R_OVER_L_EST_FREQ_Hz_M1			 (100)               // 300 Default
 
 //! \brief Defines the low speed limit for the flux integrator, pu
 //! \brief This is the speed range (CW/CCW) at which the ForceAngle object is active, but only if Enabled
@@ -204,7 +211,7 @@ extern "C" {
 #define Estun_EMJ_04APB22_M1           101
 #define Anaheim_BLY172S_M1             102
 #define Teknic_M2310PLN04K_M1          104
-#define My_Motor_M1					   105
+#define My_Motor_M1					   113
 
 // IPM motors
 // If user provides separate Ls-d, Ls-q
@@ -219,9 +226,9 @@ extern "C" {
 //! \brief These motor ID settings and motor parameters are then available to be used by the control system
 //! \brief Once your ideal settings and parameters are identified update the motor section here so it is available in the binary code
 //#define USER_MOTOR_M1 Estun_EMJ_04APB22_M1
-#define USER_MOTOR_M1 Anaheim_BLY172S_M1
+//#define USER_MOTOR_M1 Anaheim_BLY172S_M1
 //#define USER_MOTOR_M1 Teknic_M2310PLN04K_M1
-//#define USER_MOTOR_M1 My_Motor_M1
+#define USER_MOTOR_M1 My_Motor_M1
 //#define USER_MOTOR_M1 Belt_Drive_Washer_IPM_M1
 //#define USER_MOTOR_M1 Marathon_5K33GN2A_M1
 //#define USER_MOTOR_M1 Anaheim_Salient_M1
@@ -299,18 +306,20 @@ extern "C" {
 #define USER_MOTOR_FLUX_EST_FREQ_Hz_M1     (20.0)
 
 #elif (USER_MOTOR_M1 == My_Motor_M1)
-#define USER_MOTOR_TYPE_M1                 MOTOR_Type_Pm
-#define USER_MOTOR_NUM_POLE_PAIRS_M1       (4)
-#define USER_MOTOR_Rr_M1                   (NULL)
-#define USER_MOTOR_Rs_M1                   (1.600323)
-#define USER_MOTOR_Ls_d_M1                 (0.00329393)
-#define USER_MOTOR_Ls_q_M1                 (0.00329393)
-#define USER_MOTOR_RATED_FLUX_M1           (0.04955469)
-#define USER_MOTOR_MAGNETIZING_CURRENT_M1  (NULL)
-#define USER_MOTOR_RES_EST_CURRENT_M1      (0.5)
-#define USER_MOTOR_IND_EST_CURRENT_M1      (-0.5)
-#define USER_MOTOR_MAX_CURRENT_M1          (3.0)
-#define USER_MOTOR_FLUX_EST_FREQ_Hz_M1     (20.0)
+
+#define USER_MOTOR_TYPE_M1 MOTOR_Type_Pm
+#define USER_MOTOR_NUM_POLE_PAIRS_M1 (11)
+#define USER_MOTOR_Rr_M1 (NULL)
+#define USER_MOTOR_Rs_M1 (4.76391315)
+#define USER_MOTOR_Ls_d_M1 (0.00798180327)
+#define USER_MOTOR_Ls_q_M1 (0.00798180327)
+#define USER_MOTOR_RATED_FLUX_M1 (0.214254737)
+#define USER_MOTOR_MAGNETIZING_CURRENT_M1 (NULL)
+#define USER_MOTOR_RES_EST_CURRENT_M1 (0.6)
+#define USER_MOTOR_IND_EST_CURRENT_M1 (-0.6)
+#define USER_MOTOR_MAX_CURRENT_M1 (13.0)
+#define USER_MOTOR_FLUX_EST_FREQ_Hz_M1 (20.0)
+
 
 #elif (USER_MOTOR_M1 == Belt_Drive_Washer_IPM_M1)
 #define USER_MOTOR_TYPE_M1                 MOTOR_Type_Pm

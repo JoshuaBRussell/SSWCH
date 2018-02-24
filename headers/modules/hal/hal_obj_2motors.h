@@ -44,6 +44,7 @@
 #include "headers/drivers/cpu.h"
 #include "headers/drivers/flash.h"
 #include "headers/drivers/gpio.h"
+#include "headers/drivers/i2c.h"
 #include "headers/drivers/osc.h"
 #include "headers/drivers/pie.h"
 #include "headers/drivers/pll.h"
@@ -182,6 +183,8 @@ typedef struct _HAL_Obj_
 //
 //  DRV8305_Handle drv8305Handle;   //!< the drv8305 interface handle
 //  DRV8305_Obj    drv8305;         //!< the drv8305 interface object
+
+  I2C_Handle i2cAHandle;    //!< the I2C handle
 
 } HAL_Obj;
 
