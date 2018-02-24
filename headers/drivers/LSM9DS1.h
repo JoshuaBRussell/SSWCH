@@ -8,6 +8,9 @@
 #ifndef _LSM9DS1_H_
 #define _LSM9DS1_H_
 
+//----Includes----//
+#include "headers/drivers/i2c.h"
+
 //----Register Defines----//
 
 /*These were copied from:
@@ -105,8 +108,99 @@ https://github.com/sparkfun/LSM9DS1_Breakout
 #define WHO_AM_I_AG_RSP     0x68
 #define WHO_AM_I_M_RSP      0x3D
 
+//I might eventually incorporate the HAL a little more and this could be useful
+//! \brief Defines the LSM9DS1 object
+//!
+typedef struct _LSM9DS1_Obj_
+{
+  I2C_Handle       i2cHandle;                  //!< the handle for the I2C Interface
+
+} LSM9DS1_Obj;
+
+
+//! \brief Defines the LSM9DS1 handle
+//!
+typedef struct _LSM9DS1_Obj_ *LSM9DS1_Handle;
+
+
+//----Inline Functions----//
+static inline void LSM9DS1_Write(I2C_Handle i2cHandle, uint16_t register_addr, uint16_t data ){
+    //I2C_Obj *i2c = (I2C_Obj *)i2cHandle;
 
 
 
+    while(I2C_isMasterBusy(i2cHandle));
+    I2C_clearStopConditionDetection(i2cHandle);
+    while(I2C_isMasterStopBitSet(i2cHandle));
 
-#endif /* HEADERS_DRIVERS_LSM9DS1_H_ */
+    I2C_MasterControl(i2cHandle, I2C_Control_Single_TX, 0, 2);
+
+
+    while(!((I2C_getStatus(i2cHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(i2cHandle) )
+    {
+        I2C_setMasterStopBit(i2cHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(i2cHandle);     // clear NACK bit
+        return;
+    }
+    I2C_putData(i2cHandle, register_addr);
+
+    while(!((I2C_getStatus(i2cHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(i2cHandle) )
+    {
+        I2C_setMasterStopBit(i2cHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(i2cHandle);     // clear NACK bit
+        return;
+    }
+    I2C_putData(i2cHandle, data);
+
+    while(!((I2C_getStatus(i2cHandle) & (I2C_I2CSTR_XRDY_BITS | I2C_I2CSTR_ARDY_BITS))));
+    // If a NACK occurred, SCL is held low and STP bit cleared
+    if ( I2C_isNoAck(i2cHandle) )
+    {
+        I2C_setMasterStopBit(i2cHandle);  // send STP to end transfer
+        I2C_clearNoAckBit(i2cHandle);     // clear NACK bit
+        return;
+    }
+
+    I2C_setMasterStopBit(i2cHandle);
+
+    while(!I2C_isStopConditionDetected(i2cHandle));
+} // end of accel_Write() function
+
+
+static inline uint16_t LSM9DS1_Read(I2C_Handle i2cHandle, uint16_t register_add ){
+
+    while(I2C_isMasterBusy(i2cHandle));
+    I2C_clearStopConditionDetection(i2cHandle);
+    while(I2C_isMasterStopBitSet(i2cHandle));
+
+    I2C_MasterControl(i2cHandle, I2C_Control_Burst_TX_Start, 0, 1);
+
+
+    while(!((I2C_getStatus(i2cHandle) & (I2C_I2CSTR_XRDY_BITS))));
+
+    I2C_putData(i2cHandle, register_add);
+
+    while(!((I2C_getStatus(i2cHandle) & (I2C_I2CSTR_ARDY_BITS))));
+    I2C_MasterControl(i2cHandle, I2C_Control_Single_RX, 0, 1);
+
+    if(I2C_isNoAck(i2cHandle)){
+        I2C_clearNoAckBit(i2cHandle);
+    }
+
+    I2C_setMasterStopBit(i2cHandle);
+
+    while(!I2C_isStopConditionDetected(i2cHandle));
+
+    return I2C_getData(i2cHandle);
+
+}
+
+//----Functions----//
+void LSM9DS1_Init(I2C_Handle i2cHandle);
+
+
+#endif /* _LSM9DS1_H_ */
