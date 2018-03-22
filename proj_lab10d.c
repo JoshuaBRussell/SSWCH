@@ -818,6 +818,7 @@ interrupt void motor_ISR(void)
 // motor1_ISR
 interrupt void motor1_ISR(void)
 {
+  HAL_toggleGpio(halHandle, GPIO_Number_22);
   // read the timer 1 value and update the CPU usage module
   uint32_t timer1Cnt = HAL_readTimerCnt(halHandle,2);
   CPU_TIME_updateCnts(cpu_timeHandle[HAL_MTR1],timer1Cnt);
@@ -887,6 +888,8 @@ interrupt void motor1_ISR(void)
   // read the timer 1 value and update the CPU usage module
   timer1Cnt = HAL_readTimerCnt(halHandle,2);
   CPU_TIME_run(cpu_timeHandle[HAL_MTR1],timer1Cnt);
+
+  HAL_toggleGpio(halHandle, GPIO_Number_22);
 
   return;
 } // end of motor1_ISR() function
@@ -964,7 +967,7 @@ interrupt void timer0ISR(void)
  // acknowledge the Timer 0 interrupt
  HAL_acqTimer0Int(halHandle);
  // toggle status LED
- HAL_toggleGpio(halHandle, GPIO_Number_22);
+ //HAL_toggleGpio(halHandle, GPIO_Number_22);
 
  //----Accel Z----//
  uint16_t temp_z_h = 0;
@@ -1010,7 +1013,7 @@ interrupt void timer0ISR(void)
  gMotorVars[1].IqRef_A = current_x;
  updateIqRef(ctrlHandle[1],1);
 
- HAL_toggleGpio(halHandle, GPIO_Number_22);
+ //HAL_toggleGpio(halHandle, GPIO_Number_22);
 
  return;
 } // end of timer0ISR() function
