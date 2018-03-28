@@ -70,7 +70,7 @@ extern "C" {
 //! \brief WARNING: if you know the value of your Bemf constant, and you know you are operating at a multiple speed due to field weakening, be sure to set this value higher than the expected Bemf voltage
 //! \brief It is recommended to start with a value ~3x greater than the USER_ADC_FULL_SCALE_VOLTAGE_V and increase to 4-5x if scenarios where a Bemf calculation may exceed these limits
 //! \brief This value is also used to calculate the minimum flux value: USER_IQ_FULL_SCALE_VOLTAGE_V/USER_EST_FREQ_Hz/0.7
-#define USER_IQ_FULL_SCALE_VOLTAGE_V_M1      	(120.0)   // 24.0 Example for boostxldrv8305_revA typical usage and the Anaheim motor
+#define USER_IQ_FULL_SCALE_VOLTAGE_V_M1        (120.0)   // 24.0 Example for boostxldrv8305_revA typical usage and the Anaheim motor
 
 //! \brief Defines the maximum voltage at the input to the AD converter
 //! \brief The value that will be represented by the maximum ADC input (3.3V) and conversion (0FFFh)
@@ -308,12 +308,12 @@ extern "C" {
 #elif (USER_MOTOR_M1 == My_Motor_M1)
 
 #define USER_MOTOR_TYPE_M1 MOTOR_Type_Pm
-#define USER_MOTOR_NUM_POLE_PAIRS_M1 (11)
+#define USER_MOTOR_NUM_POLE_PAIRS_M1 (14)
 #define USER_MOTOR_Rr_M1 (NULL)
-#define USER_MOTOR_Rs_M1 (4.76391315)
-#define USER_MOTOR_Ls_d_M1 (0.00798180327)
-#define USER_MOTOR_Ls_q_M1 (0.00798180327)
-#define USER_MOTOR_RATED_FLUX_M1 (0.214254737)
+#define USER_MOTOR_Rs_M1 (4.3)   //This should be ~8.59 but isn't due to the "voltage division" bug.
+#define USER_MOTOR_Ls_d_M1 (0.00115)
+#define USER_MOTOR_Ls_q_M1 (0.00115)
+#define USER_MOTOR_RATED_FLUX_M1 (0.213) //This should be ~0.413 but isn't due to the "voltage division" bug.
 #define USER_MOTOR_MAGNETIZING_CURRENT_M1 (NULL)
 #define USER_MOTOR_RES_EST_CURRENT_M1 (0.6)
 #define USER_MOTOR_IND_EST_CURRENT_M1 (-0.6)
