@@ -225,6 +225,7 @@ CPU_TIME_Obj     cpu_time[2];
 
 PID_Handle pidHandle_zaccel;
 PID_Handle pidHandle_xaccel;
+PID_Handle pidHandle_pos;
 
 void main(void)
 {
@@ -425,6 +426,17 @@ void main(void)
   // disable the PWM
   HAL_disablePwm(halHandleMtr[HAL_MTR1]);
   HAL_disablePwm(halHandleMtr[HAL_MTR2]);
+
+  //----Init Position Controller----//
+  PID_Obj pid_pos;
+
+  pidHandle_pos = PID_init(&pid_pos,sizeof(pid_pos));
+
+  // set PID gains Kp, Ki, Kd
+  PID_setGains(pidHandle_pos, _IQ(1.0), _IQ(I_Gainz), _IQ(D_Gainz));
+
+  // set minimum and maximim PID values
+  PID_setMinMax(pidHandle_pos, _IQ(-0.5), _IQ(0.5));
 
 
   //----Init Accel PIDs----//
@@ -979,17 +991,29 @@ interrupt void timer0ISR(void)
  //BandPass Filter
  Zaccel = _IQmpy(b0, z_meas) + _IQmpy(b2, z_meas2) - _IQmpy(a1, z_output1) - _IQmpy(a2, z_output2);
 
- //----Update Filter State Variables----//
- z_meas2 = z_meas1;
- z_meas1 = z_meas;
+ //----Position Controller----//
+ if(_IQabs(EST_getAngle_pu(ctrlHandle[HAL_MTR1]->estHandle)) > _IQ24(0.25)){
+     PID_run(pidHandle_pos, _IQ(0.0), EST_getFm_pu(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+     gMotorVars[0].IqRef_A = current_z;
+     updateIqRef(ctrlHandle[0],0);
+ }
+ else{
+     gMotorVars[0].IqRef_A = _IQ(0.0);
+     updateIqRef(ctrlHandle[0],0);
+ }
 
- z_output2 = z_output1;
- z_output1 = Zaccel;
 
- //Run PID and update current command
- PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
- gMotorVars[0].IqRef_A = current_z;
- updateIqRef(ctrlHandle[0],0);
+// //----Update Filter State Variables----//
+// z_meas2 = z_meas1;
+// z_meas1 = z_meas;
+//
+// z_output2 = z_output1;
+// z_output1 = Zaccel;
+//
+// //Run PID and update current command
+// PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+// gMotorVars[0].IqRef_A = current_z;
+// updateIqRef(ctrlHandle[0],0);
 
  //----Accel X----//
  uint16_t temp_x_h = 0;
