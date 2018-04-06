@@ -1241,8 +1241,8 @@ void HAL_setupAdcs(HAL_Handle handle)
   ADC_setSocTrigSrc(obj->adcHandle,ADC_SocNumber_14,ADC_SocTrigSrc_EPWM4_ADCSOCA);
   ADC_setSocSampleDelay(obj->adcHandle,ADC_SocNumber_14,ADC_SocSampleDelay_9_cycles);
 
-  // VDCBUS
-  ADC_setSocChanNumber(obj->adcHandle,ADC_SocNumber_15,ADC_SocChanNumber_B5);
+  // Potentiometer
+  ADC_setSocChanNumber(obj->adcHandle,ADC_SocNumber_15,ADC_SocChanNumber_B6);
   ADC_setSocTrigSrc(obj->adcHandle,ADC_SocNumber_15,ADC_SocTrigSrc_EPWM4_ADCSOCA);
   ADC_setSocSampleDelay(obj->adcHandle,ADC_SocNumber_15,ADC_SocSampleDelay_9_cycles);
   // End Motor 2 sampling

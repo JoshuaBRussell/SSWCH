@@ -714,13 +714,26 @@ static inline void HAL_readAdcData(HAL_Handle handle,HAL_Handle_mtr handleMtr,HA
 	pAdcData->V.value[2] = value;
 
 	// read the dcBus voltage value
-	value = (_iq)ADC_readResult(obj->adcHandle,ADC_ResultNumber_15);     // divide by 2^numAdcBits = 2^12
-	value = _IQ12mpy(value,voltage_sf);
-	pAdcData->dcBus = value;
+//	value = (_iq)ADC_readResult(obj->adcHandle,ADC_ResultNumber_15);     // divide by 2^numAdcBits = 2^12
+//	value = _IQ12mpy(value,voltage_sf);
+//	pAdcData->dcBus = value;
   }
 
   return;
 } // end of HAL_readAdcData() function
+
+//! \brief Reads the Potentiometer
+//! \param[in] handle The hardware abstraction layer (HAL) handle
+//! \return The potentiometer value from _IQ(-1.0) to _IQ(1.0)
+static inline _iq HAL_readPotentiometerData(HAL_Handle handle)
+{
+ HAL_Obj *obj = (HAL_Obj *)handle;
+ _iq value;
+ // convert potentiometer from IQ12 to IQ24.
+ value = _IQ12toIQ((_iq)ADC_readResult(obj->adcHandle,ADC_ResultNumber_15));
+ return(value);
+} // end of HAL_readPotentiometerData() function
+
 
 
 //! \brief      Reads the ADC data

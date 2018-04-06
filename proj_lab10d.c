@@ -99,6 +99,7 @@ _iq Xaccel = 0; //Filtered X acceleration
 
 _iq current_z = 0; //Current Comm to Z Mtr
 _iq current_x = 0; //Current Comm to X Mtr
+_iq gPotentiometer = _IQ(0.0);
 
 //Bandpass State Variables
 _iq z_meas1 = 0;
@@ -991,29 +992,19 @@ interrupt void timer0ISR(void)
  //BandPass Filter
  Zaccel = _IQmpy(b0, z_meas) + _IQmpy(b2, z_meas2) - _IQmpy(a1, z_output1) - _IQmpy(a2, z_output2);
 
- //----Position Controller----//
- if(_IQabs(EST_getAngle_pu(ctrlHandle[HAL_MTR1]->estHandle)) > _IQ24(0.25)){
-     PID_run(pidHandle_pos, _IQ(0.0), EST_getFm_pu(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
-     gMotorVars[0].IqRef_A = current_z;
-     updateIqRef(ctrlHandle[0],0);
- }
- else{
-     gMotorVars[0].IqRef_A = _IQ(0.0);
-     updateIqRef(ctrlHandle[0],0);
- }
+ gPotentiometer = HAL_readPotentiometerData(halHandle);
 
+ //----Update Filter State Variables----//
+ z_meas2 = z_meas1;
+ z_meas1 = z_meas;
 
-// //----Update Filter State Variables----//
-// z_meas2 = z_meas1;
-// z_meas1 = z_meas;
-//
-// z_output2 = z_output1;
-// z_output1 = Zaccel;
-//
-// //Run PID and update current command
-// PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
-// gMotorVars[0].IqRef_A = current_z;
-// updateIqRef(ctrlHandle[0],0);
+ z_output2 = z_output1;
+ z_output1 = Zaccel;
+
+ //Run PID and update current command
+ PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+ gMotorVars[0].IqRef_A = current_z;
+ updateIqRef(ctrlHandle[0],0);
 
  //----Accel X----//
  uint16_t temp_x_h = 0;
