@@ -77,6 +77,13 @@
 #define I_Gainx 0.0
 #define D_Gainx 0.0
 
+#define P_Gain_speed 5.0
+#define I_Gain_speed 0.005
+#define D_Gain_speed 0.0
+
+#define ACCEL_THRESHOLD 0.2 // ~ 2 m/s^2 acceleration min
+#define UPPER_POS_THRESHOLD 0.7   // Ideally this would be coverted to degrees (currently in terms of ADC value)
+#define LOWER_POS_THRESHOLD 0.3
 //#define _ENABLE_OVM_
 // **************************************************************************
 // the globals
@@ -100,6 +107,7 @@ _iq Xaccel = 0; //Filtered X acceleration
 _iq current_z = 0; //Current Comm to Z Mtr
 _iq current_x = 0; //Current Comm to X Mtr
 _iq gPotentiometer = _IQ(0.0);
+volatile uint16_t low_accel_count = 0;
 
 //Bandpass State Variables
 _iq z_meas1 = 0;
@@ -434,7 +442,7 @@ void main(void)
   pidHandle_pos = PID_init(&pid_pos,sizeof(pid_pos));
 
   // set PID gains Kp, Ki, Kd
-  PID_setGains(pidHandle_pos, _IQ(1.0), _IQ(I_Gainz), _IQ(D_Gainz));
+  PID_setGains(pidHandle_pos, _IQ(5.0), _IQ(0.05), _IQ(D_Gainz));
 
   // set minimum and maximim PID values
   PID_setMinMax(pidHandle_pos, _IQ(-0.5), _IQ(0.5));
@@ -980,7 +988,7 @@ interrupt void timer0ISR(void)
  // acknowledge the Timer 0 interrupt
  HAL_acqTimer0Int(halHandle);
  // toggle status LED
- //HAL_toggleGpio(halHandle, GPIO_Number_22);
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
 
  //----Accel Z----//
  uint16_t temp_z_h = 0;
@@ -1001,34 +1009,77 @@ interrupt void timer0ISR(void)
  z_output2 = z_output1;
  z_output1 = Zaccel;
 
- //Run PID and update current command
- PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
- gMotorVars[0].IqRef_A = current_z;
- updateIqRef(ctrlHandle[0],0);
+// if (Zaccel < _IQ(ACCEL_THRESHOLD)){
+//     low_accel_count = low_accel_count + 1;
+// }
+// else {
+//     low_accel_count = 0;
+// }
+
+
+// if (low_accel_count > 200){
+//     if (gPotentiometer > (_IQ(UPPER_POS_THRESHOLD))){
+//         PID_run(pidHandle_pos, _IQ(0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+//         gMotorVars[0].IqRef_A = current_z;
+//         updateIqRef(ctrlHandle[0],0);
+//     }
+//     else if (gPotentiometer < (_IQ(LOWER_POS_THRESHOLD))){
+//         PID_run(pidHandle_pos, _IQ(-0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+//         gMotorVars[0].IqRef_A = current_z;
+//         updateIqRef(ctrlHandle[0],0);
+//     }
+//     else{
+//         gMotorVars[0].IqRef_A = 0;
+//         updateIqRef(ctrlHandle[0],0);
+//     }
+// }
+//
+// else {
+//     PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+//     gMotorVars[0].IqRef_A = current_z;
+//     updateIqRef(ctrlHandle[0],0);
+// }
+
+// if (gPotentiometer < _IQ(0.5)){
+//
+//     PID_run(pidHandle_pos, _IQ(0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+//     gMotorVars[0].IqRef_A = current_z;
+//     updateIqRef(ctrlHandle[0],0);
+// }
+// else{
+//     PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+//     gMotorVars[0].IqRef_A = current_z;
+//     updateIqRef(ctrlHandle[0],0);
+// }
+
+// //Run PID and update current command
+// PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+// gMotorVars[0].IqRef_A = current_z;
+// updateIqRef(ctrlHandle[0],0);
 
  //----Accel X----//
- uint16_t temp_x_h = 0;
- int16_t jAccel = 0;
- temp_x_h = LSM9DS1_Read(halHandle->i2cAHandle, OUT_X_H_XL );
- jAccel = (temp_x_h << 8) | LSM9DS1_Read(halHandle->i2cAHandle, OUT_X_L_XL );
- x_meas = _IQ14toIQ(_IQ14(0.000061 * jAccel));
-
- //BandPass Filter
- Xaccel = _IQmpy(b0, x_meas) + _IQmpy(b2, x_meas2) - _IQmpy(a1, x_output1) - _IQmpy(a2, x_output2);
-
- //----Update Filter State Variables----//
- x_meas2 = x_meas1;
- x_meas1 = x_meas;
-
- x_output2 = x_output1;
- x_output1 = Xaccel;
+// uint16_t temp_x_h = 0;
+// int16_t jAccel = 0;
+// temp_x_h = LSM9DS1_Read(halHandle->i2cAHandle, OUT_X_H_XL );
+// jAccel = (temp_x_h << 8) | LSM9DS1_Read(halHandle->i2cAHandle, OUT_X_L_XL );
+// x_meas = _IQ14toIQ(_IQ14(0.000061 * jAccel));
+//
+// //BandPass Filter
+// Xaccel = _IQmpy(b0, x_meas) + _IQmpy(b2, x_meas2) - _IQmpy(a1, x_output1) - _IQmpy(a2, x_output2);
+//
+// //----Update Filter State Variables----//
+// x_meas2 = x_meas1;
+// x_meas1 = x_meas;
+//
+// x_output2 = x_output1;
+// x_output1 = Xaccel;
 
  //Run PID and update current command
- PID_run(pidHandle_xaccel, _IQ(0.0), Xaccel, &current_x);
- gMotorVars[1].IqRef_A = current_x;
- updateIqRef(ctrlHandle[1],1);
+ //PID_run(pidHandle_xaccel, _IQ(0.0), Xaccel, &current_x);
+// gMotorVars[1].IqRef_A = 0;
+// updateIqRef(ctrlHandle[1],1);
 
- //HAL_toggleGpio(halHandle, GPIO_Number_22);
+ HAL_toggleGpio(halHandle, GPIO_Number_22);
 
  return;
 } // end of timer0ISR() function
