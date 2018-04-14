@@ -1009,36 +1009,36 @@ interrupt void timer0ISR(void)
  z_output2 = z_output1;
  z_output1 = Zaccel;
 
-// if (Zaccel < _IQ(ACCEL_THRESHOLD)){
-//     low_accel_count = low_accel_count + 1;
-// }
-// else {
-//     low_accel_count = 0;
-// }
+ if (Zaccel < _IQ(ACCEL_THRESHOLD)){
+     low_accel_count = low_accel_count + 1;
+ }
+ else {
+     low_accel_count = 0;
+ }
 
 
-// if (low_accel_count > 200){
-//     if (gPotentiometer > (_IQ(UPPER_POS_THRESHOLD))){
-//         PID_run(pidHandle_pos, _IQ(0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
-//         gMotorVars[0].IqRef_A = current_z;
-//         updateIqRef(ctrlHandle[0],0);
-//     }
-//     else if (gPotentiometer < (_IQ(LOWER_POS_THRESHOLD))){
-//         PID_run(pidHandle_pos, _IQ(-0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
-//         gMotorVars[0].IqRef_A = current_z;
-//         updateIqRef(ctrlHandle[0],0);
-//     }
-//     else{
-//         gMotorVars[0].IqRef_A = 0;
-//         updateIqRef(ctrlHandle[0],0);
-//     }
-// }
-//
-// else {
-//     PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
-//     gMotorVars[0].IqRef_A = current_z;
-//     updateIqRef(ctrlHandle[0],0);
-// }
+ if (low_accel_count > 200){
+     if (gPotentiometer > (_IQ(UPPER_POS_THRESHOLD))){
+         PID_run(pidHandle_pos, _IQ(0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+         gMotorVars[0].IqRef_A = current_z;
+         updateIqRef(ctrlHandle[0],0);
+     }
+     else if (gPotentiometer < (_IQ(LOWER_POS_THRESHOLD))){
+         PID_run(pidHandle_pos, _IQ(-0.01), EST_getSpeed_krpm(ctrlHandle[HAL_MTR1]->estHandle), &current_z);
+         gMotorVars[0].IqRef_A = current_z;
+         updateIqRef(ctrlHandle[0],0);
+     }
+     else{
+         gMotorVars[0].IqRef_A = 0;
+         updateIqRef(ctrlHandle[0],0);
+     }
+ }
+
+ else {
+     PID_run(pidHandle_zaccel, _IQ(0.0), Zaccel, &current_z);
+     gMotorVars[0].IqRef_A = current_z;
+     updateIqRef(ctrlHandle[0],0);
+ }
 
 // if (gPotentiometer < _IQ(0.5)){
 //
